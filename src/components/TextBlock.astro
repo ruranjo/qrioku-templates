@@ -1,0 +1,23 @@
+---
+export interface TextBlockProps {
+  value: string;
+  style?: string;
+}
+
+const { value, style } = Astro.props as TextBlockProps;
+
+const getStyleClasses = (s: string = 'paragraph') => {
+  switch (s.toLowerCase()) {
+    case 'title':
+      return 'text-4xl font-bold text-gray-900 mb-6';
+    case 'subtitle':
+      return 'text-2xl font-semibold text-gray-700 mb-4';
+    case 'quote':
+      return 'text-xl italic text-gray-600 border-l-4 border-blue-500 pl-4 my-6';
+    default:
+      return 'text-lg text-gray-800 leading-relaxed mb-4';
+  }
+};
+---
+
+<div class={getStyleClasses(style)} set:html={value} />

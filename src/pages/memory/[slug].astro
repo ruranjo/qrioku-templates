@@ -1,0 +1,79 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+const { slug } = Astro.params;
+
+// Fetch document data
+let data: any = null;
+let error: string | null = null;
+
+try {
+  const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:8081";
+  const response = await fetch(`${API_URL}/public/documents/${slug}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      error = "The requested memory does not exist";
+    } else {
+      error = "Failed to load memory";
+    }
+  } else {
+    data = await response.json();
+  }
+} catch (e) {
+  console.error(e);
+  error = "The requested memory does not exist"; // Fallback generic error
+}
+
+// Dynamic Template Loading
+// ✅ Use 'any' for the dynamic component
+let TemplateComponent: any = null;
+
+if (data?.metadata?.template) {
+  const templateName = data.metadata.template.name;
+
+  // Find all templates
+  const modules: Record<string, () => Promise<unknown>> = import.meta.glob(
+    "/src/qrioku-templates/**/index.astro",
+  );
+
+  // Construct path for the specific template
+  const templatePath = `/src/qrioku-templates/${templateName}/index.astro`;
+  const loader = modules[templatePath];
+
+  if (loader) {
+    // ✅ Type assertion: unknown -> any
+    const mod = (await loader()) as { default: any };
+    TemplateComponent = mod.default;
+  } else {
+    error = `Template '${templateName}' not found`;
+  }
+}
+---
+
+<Layout title={data?.metadata?.name || "Memory"}>
+  {
+    error ? (
+      <div class="min-h-screen flex items-center justify-center bg-gray-50">
+        <div class="text-center p-8">
+          <h1 class="text-3xl font-bold text-gray-800 mb-4">😕</h1>
+          <p class="text-xl text-gray-600">{error}</p>
+          <a href="/" class="mt-6 inline-block text-blue-500 hover:underline">
+            Go Home
+          </a>
+        </div>
+      </div>
+    ) : TemplateComponent ? (
+      // Render the dynamic template, passing all data as props
+      <TemplateComponent
+        metadata={data.metadata}
+        structure={data.structure}
+        content={data.content}
+      />
+    ) : (
+      <div class="min-h-screen flex items-center justify-center bg-gray-50">
+        <p class="text-xl text-gray-600">Loading template...</p>
+      </div>
+    )
+  }
+</Layout>
