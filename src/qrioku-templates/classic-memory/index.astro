@@ -1,0 +1,121 @@
+---
+const { data } = Astro.props;
+const { metadata, structure, content } = data;
+
+const getBlock = (ref, type) => {
+  if (type === "text") return content.texts[ref];
+  if (type === "image") return content.images[ref];
+  if (type === "link") return content.links[ref];
+  return null;
+};
+
+// 👉 Primera imagen para el hero
+const heroImageBlock = structure
+  .sort((a, b) => a.order - b.order)
+  .find((block) => block.type === "image");
+
+const heroImage = heroImageBlock && content.images[heroImageBlock.ref];
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>{metadata.name} · Memoria</title>
+    <meta name="description" content="Memoria conmemorativa" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
+
+  <body
+    class="min-h-screen bg-[radial-gradient(circle_at_top,theme(colors.slate.900),theme(colors.slate.950))] text-slate-100 font-sans leading-relaxed"
+  >
+    <main class="mx-auto max-w-4xl px-6 py-16">
+      <!-- HERO -->
+      <section class="mb-20 text-center">
+        {
+          heroImage?.url && (
+            <div class="mb-8">
+              <img
+                src={heroImage.url}
+                alt={heroImage.alt}
+                class="mx-auto max-h-[420px] w-full rounded-2xl object-cover brightness-90 grayscale-[10%]"
+              />
+            </div>
+          )
+        }
+
+        <i class="fa-solid fa-dove text-amber-400 text-3xl mb-4"></i>
+
+        <h1
+          class="font-serif text-[clamp(2.2rem,4vw,3.2rem)] font-semibold mb-4"
+        >
+          {metadata.name}
+        </h1>
+
+        <p class="mx-auto max-w-xl text-slate-400">
+          Un espacio de recuerdo, gratitud y memoria eterna.
+        </p>
+      </section>
+
+      <!-- CONTENT -->
+      {
+        structure
+          .sort((a, b) => a.order - b.order)
+          .map((block) => {
+            const item = getBlock(block.ref, block.type);
+
+            if (block.type === "text" && item?.value) {
+              return <div class="my-10 text-[1.05rem]">{item.value}</div>;
+            }
+
+            if (block.type === "image" && item?.url) {
+              return (
+                <div class="my-12 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5">
+                  <img
+                    src={item.url}
+                    alt={item.alt}
+                    class="h-full w-full rounded-xl object-cover brightness-90 grayscale-[10%]"
+                  />
+                </div>
+              );
+            }
+
+            if (block.type === "link" && item?.url) {
+              return (
+                <div class="my-14 flex flex-wrap justify-center gap-4">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    class="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 backdrop-blur transition hover:border-amber-400 hover:text-amber-400"
+                  >
+                    <i class="fa-solid fa-candle-holder" />
+                    {item.label}
+                  </a>
+                </div>
+              );
+            }
+          })
+      }
+
+      <!-- FOOTER -->
+      <footer class="mt-24 text-center text-sm text-slate-400">
+        <i class="fa-regular fa-heart"></i>
+        <span class="ml-2">
+          En memoria eterna · {new Date(metadata.starts_at).getFullYear()}
+        </span>
+      </footer>
+    </main>
+  </body>
+</html>
