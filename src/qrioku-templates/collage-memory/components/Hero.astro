@@ -1,0 +1,21 @@
+---
+const { memoryImage } = Astro.props;
+---
+
+<div class="building-topper relative flex flex-col items-center space-y-4 mb-8">
+  {
+    memoryImage ? (
+      <div class="building-wreath w-full max-w-[800px] px-4">
+        <img
+          src={memoryImage}
+          alt="Memory tribute"
+          class="w-full h-auto rounded-2xl shadow-lg"
+        />
+      </div>
+    ) : (
+      <div class="w-full h-64 flex items-center justify-center text-gray-400">
+        No memory image available
+      </div>
+    )
+  }
+</div>

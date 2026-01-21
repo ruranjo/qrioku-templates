@@ -1,0 +1,84 @@
+---
+import ThemeToggle from "./components/ThemeToggle.astro";
+import Header from "./components/Header.astro";
+import Hero from "./components/Hero.astro";
+import MemoryCard from "./components/MemoryCard.astro";
+import Footer from "./components/Footer.astro";
+
+// Props passed from [slug].astro or parent, matching petmemory signature
+const { metadata, structure, content } = Astro.props;
+
+// Fallbacks
+const safeStructure = structure || [];
+const safeMetadata = metadata || { name: "Memory Collage" };
+
+// Get the first image from content.images, fallback to metadata.memoryImage
+const firstMemoryImage = content?.images
+  ? Object.values(content.images)[0]
+  : safeMetadata.memoryImage;
+---
+
+<!-- Main Layout Container -->
+<div
+  class="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 pb-20"
+>
+  <!-- Top Bar with Theme Toggle -->
+  <div class="absolute top-0 right-0 p-4 z-50">
+    <ThemeToggle />
+  </div>
+
+  <!-- Branding Header -->
+  <Header title={safeMetadata.name} />
+
+  <!-- Content Container -->
+  <main class="container mx-auto px-4 py-6 space-y-12">
+    <!-- Hero Section (Wreath & Jump Button) - Kept as decorative theme element -->
+    <section aria-label="Welcome and Navigation">
+      <Hero memoryImage={firstMemoryImage} />
+    </section>
+
+    <!-- Memory Grid -->
+    <section aria-label="Memory Calendar Grid">
+      <div
+        class="calendar grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-fr"
+      >
+        {
+          safeStructure.map((block: any, idx: number) => {
+            const type = block.type;
+            const ref = block.ref;
+            let data = null;
+
+            if (type === "text") data = content?.texts?.[ref];
+            if (type === "image") data = content?.images?.[ref];
+            if (type === "link") data = content?.links?.[ref];
+
+            if (!data) return null;
+
+            return <MemoryCard index={idx + 1} type={type} data={data} />;
+          })
+        }
+
+        {
+          /* Render empty placeholder if no content provided? Or just show nothing. */
+        }
+        {
+          safeStructure.length === 0 && (
+            <div class="col-span-full text-center text-gray-500 py-10">
+              No memories found.
+            </div>
+          )
+        }
+      </div>
+    </section>
+  </main>
+
+  <!-- Decorative Footer (Snow) -->
+  <Footer />
+</div>
+
+<!-- Global Styles/Overrides -->
+<style is:global>
+  html {
+    scroll-behavior: smooth;
+  }
+</style>

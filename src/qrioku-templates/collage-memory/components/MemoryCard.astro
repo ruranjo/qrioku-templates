@@ -1,0 +1,81 @@
+---
+import { Image } from "astro:assets";
+
+interface Props {
+  index: number;
+  type: "image" | "text" | "link"; // Added link support for parity with structure
+  data: any;
+}
+
+const { index, type, data } = Astro.props;
+---
+
+<article
+  id={`day-${index}`}
+  class="memory-card relative bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 focus-within:ring-4 focus-within:ring-blue-400 group h-full"
+  aria-label={`Memory ${index}`}
+  role="article"
+  tabindex="0"
+>
+  <!-- Number Plaque -->
+  <div class="absolute top-2 left-2 z-10">
+    <span
+      class="flex items-center justify-center w-10 h-10 text-white font-bold bg-blue-600 dark:bg-blue-500 rounded-full shadow-sm group-hover:bg-blue-700 dark:group-hover:bg-blue-400 transition-colors"
+    >
+      {index}
+    </span>
+  </div>
+
+  <div
+    class="pane relative w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden"
+  >
+    {
+      type === "image" && (
+        <Image
+          src={data.url}
+          alt={data.alt || `Memory ${index}`}
+          width={400}
+          height={300}
+          class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+          loading={index <= 6 ? "eager" : "lazy"}
+          decoding="async"
+          inferSize={true}
+        />
+      )
+    }
+
+    {
+      type === "text" && (
+        <div class="p-6 w-full h-full flex items-center justify-center text-center overflow-auto">
+          <p
+            class="text-gray-800 dark:text-gray-200 font-medium"
+            style={data.style}
+          >
+            {data.value}
+          </p>
+        </div>
+      )
+    }
+
+    {
+      type === "link" && (
+        <a
+          href={data.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex flex-col items-center p-4 hover:underline"
+        >
+          <span class="text-4xl mb-2">🔗</span>
+          <span class="text-blue-600 dark:text-blue-400 font-semibold">
+            {data.label}
+          </span>
+        </a>
+      )
+    }
+  </div>
+
+  <div
+    class="absolute inset-0 bg-black/0 group-hover:bg-black/10 dark:group-hover:bg-white/5 transition-colors duration-300 pointer-events-none"
+  >
+  </div>
+</article>

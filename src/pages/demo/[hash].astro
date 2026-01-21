@@ -1,0 +1,105 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+const { hash } = Astro.params;
+
+// Get the access_token cookie from the request
+const cookies = Astro.request.headers.get('cookie') || '';
+
+// Fetch demo data from Public API with authentication
+let data: any = null;
+let error: string | null = null;
+
+try {
+  const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:8081";
+  const response = await fetch(`${API_URL}/demo/${hash}`, {
+    method: 'GET',
+    headers: {
+      'Cookie': cookies,
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      error = "Authentication required. Please log in to view this demo.";
+    } else if (response.status === 403) {
+      error = "Access denied. You don't have permission to view this demo.";
+    } else if (response.status === 404) {
+      error = "The requested demo does not exist.";
+    } else {
+      error = "Failed to load demo.";
+    }
+  } else {
+    data = await response.json();
+  }
+} catch (e) {
+  console.error(e);
+  error = "An error occurred while loading the demo.";
+}
+
+// Dynamic Template Loading
+let TemplateComponent: any = null;
+
+if (data?.metadata?.template) {
+  const templateName = data.metadata.template.name;
+
+  // Find all templates
+  const modules: Record<string, () => Promise<unknown>> = import.meta.glob(
+    "/src/qrioku-templates/**/index.astro",
+  );
+
+  // Construct path for the specific template
+  const templatePath = `/src/qrioku-templates/${templateName}/index.astro`;
+  const loader = modules[templatePath];
+
+  if (loader) {
+    const mod = (await loader()) as { default: any };
+    TemplateComponent = mod.default;
+  } else {
+    error = `Template '${templateName}' not found`;
+  }
+}
+---
+
+<Layout title={data?.metadata?.name || "Demo"}>
+  {
+    error ? (
+      <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div class="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
+          <div class="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+            <svg class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-800 mb-2">Access Restricted</h1>
+          <p class="text-gray-600 mb-6">{error}</p>
+          <a 
+            href="/" 
+            class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Go Home
+          </a>
+        </div>
+      </div>
+    ) : TemplateComponent ? (
+      <!-- Render the dynamic template with demo data -->
+      <TemplateComponent
+        metadata={data.metadata}
+        structure={data.structure}
+        content={data.content}
+      />
+    ) : (
+      <div class="min-h-screen flex items-center justify-center bg-gray-50">
+        <div class="text-center">
+          <div class="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p class="text-xl text-gray-600">Loading template...</p>
+        </div>
+      </div>
+    )
+  }
+</Layout>
