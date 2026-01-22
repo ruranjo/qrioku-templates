@@ -1,0 +1,72 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+// Force SSR for this route
+export const prerender = false;
+
+let html = "";
+let error = null;
+let ComponentToRender: any = null;
+let props: any = {};
+
+if (Astro.request.method === "POST") {
+  try {
+    const data = await Astro.request.json();
+    const { metadata, structure, content } = data;
+
+    if (!metadata?.template?.name) {
+      throw new Error("Template name missing in metadata");
+    }
+
+    const templateName = metadata.template.name;
+
+    // Resolve template component
+    // Note: import.meta.glob is build-time, so we map all potential templates
+    const modules: Record<string, () => Promise<unknown>> = import.meta.glob(
+      "/src/qrioku-templates/**/index.astro",
+    );
+
+    const templatePath = `/src/qrioku-templates/${templateName}/index.astro`;
+    const loader = modules[templatePath];
+
+    if (!loader) {
+      throw new Error(`Template '${templateName}' not found`);
+    }
+
+    const mod = (await loader()) as { default: any };
+    const TemplateComponent = mod.default;
+
+    // We render the component inside the Layout to ensure it has the Document shell (if Layout provides it)
+    // However, since we are returning the response as a string or stream, we treat this file as the Page.
+    // We just render the component conditionally.
+
+    // NOTE: In Astro files, we can't easily capture the "rendered string" of a sub-component to a variable
+    // without using the Astro container API (experimental) or just rendering it in the template.
+    // The pattern here is: this .astro file *IS* the response.
+
+    // We expose the component class to the template area below.
+    ComponentToRender = TemplateComponent;
+    props = { metadata, structure, content };
+  } catch (e: any) {
+    console.error("Render error:", e);
+    error = e.message || "Invalid request";
+    Astro.response.status = 400;
+  }
+} else {
+  Astro.response.status = 405; // Method Not Allowed
+  error = "POST required";
+}
+---
+
+{
+  error ? (
+    <div style="padding: 2rem; text-align: center; color: red;">
+      <h1>Render Error</h1>
+      <p>{error}</p>
+    </div>
+  ) : ComponentToRender ? (
+    <Layout title={props.metadata?.name || "Preview"}>
+      <ComponentToRender {...props} />
+    </Layout>
+  ) : null
+}
